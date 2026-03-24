@@ -2,64 +2,21 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Колесо фортуны с объёмной стрелкой</title>
+<title>Колесо фортуны с подпрыгивающей стрелкой</title>
 <style>
-body {
-  text-align: center;
-  font-family: Arial, sans-serif;
-  background: #111;
-  color: white;
-}
-#wrapper {
-  position: relative;
-  width: 420px;
-  margin: auto;
-}
-canvas {
-  border-radius: 50%;
-}
-#arrow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  margin-left: -25px;
-  margin-top: -220px;
-  z-index: 100;
-  border-left: 25px solid transparent;
-  border-right: 25px solid transparent;
-  border-bottom: 50px solid orange;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 -5px 5px rgba(255,165,0,0.6);
-  border-radius: 5px;
-}
-button {
-  margin-top: 10px;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-}
-#result {
-  margin-top: 20px;
-  font-size: 24px;
-  font-weight: bold;
-}
-textarea {
-  width: 400px;
-  height: 120px;
-  font-size: 14px;
-  margin-top: 10px;
-  resize: none;
-}
-label {
-  display: block;
-  margin-top: 15px;
-}
+body { text-align:center; font-family:Arial,sans-serif; background:#111; color:white;}
+#wrapper { position:relative; width:420px; margin:auto;}
+canvas { border-radius:50%; display:block;}
+#arrowCanvas { position:absolute; top:0; left:0; z-index:200; pointer-events:none;}
+button { margin-top:10px; padding:10px 20px; font-size:16px; cursor:pointer;}
+#result { margin-top:20px; font-size:24px; font-weight:bold;}
+textarea { width:400px; height:120px; font-size:14px; margin-top:10px; resize:none;}
+label { display:block; margin-top:15px;}
 </style>
 </head>
 <body>
 
-<h1>🎯 Колесо фортуны</h1>
+<h1>🎯 Колесо фортуны с подпрыгивающей стрелкой</h1>
 
 <label>Введите секторы (каждый сектор с новой строки):</label>
 <textarea id="sectorsInput">
@@ -70,168 +27,191 @@ label {
 Графану тестируете?
 У меня всё, вопросы?
 </textarea>
-<button onclick="updateSectors()">Обновить колёсо</button>
+<button id="updateBtn">Обновить колесо</button>
 
 <div id="wrapper">
   <canvas id="wheel" width="400" height="400"></canvas>
-  <div id="arrow"></div>
+  <canvas id="arrowCanvas" width="400" height="400"></canvas>
 </div>
 
-<button onclick="spin()">Крутить</button>
+<button id="spinBtn">Крутить</button>
 <h2 id="result"></h2>
 <audio id="tick" src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-wheel-1934.mp3"></audio>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyA0eZ-1AEhH1ovbz-11thQe79Ej_f8nou8",
-  authDomain: "wheel-kb.firebaseapp.com",
-  databaseURL: "https://wheel-kb-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "wheel-kb"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-let options = [];
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
+<script>
+const wheelCanvas = document.getElementById("wheel");
+const wheelCtx = wheelCanvas.getContext("2d");
+const arrowCanvas = document.getElementById("arrowCanvas");
+const arrowCtx = arrowCanvas.getContext("2d");
 const tick = document.getElementById("tick");
+
 const radius = 200;
+let options = [];
 let angle = 0;
 let spinning = false;
-
-// Обновление секторов
-function updateSectors(){
-  const text = document.getElementById("sectorsInput").value.trim();
-  if(!text) return;
-  options = text.split("\n").map(s=>s.trim()).filter(s=>s.length>0);
-  set(ref(db,"sectors"),{sectors:options});
-  drawWheel();
-}
-
-// Синхронизация через Firebase
-onValue(ref(db,"sectors"),snap=>{
-  const data = snap.val();
-  if(!data || !data.sectors) return;
-  options = data.sectors;
-  document.getElementById("sectorsInput").value = options.join("\n");
-  drawWheel();
-});
+let selectedIndex = 0;
+let arrowBounce = 0;
 
 // Рисуем колесо
 function drawWheel(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  wheelCtx.clearRect(0,0,400,400);
   const num = options.length;
   if(num===0) return;
   const arc = 2*Math.PI/num;
-
   for(let i=0;i<num;i++){
-    // красно-белое чередование
-    ctx.fillStyle = i%2===0?"#ff0000":"#ffffff";
-    ctx.beginPath();
-    ctx.moveTo(radius,radius);
-    ctx.arc(radius,radius,radius,i*arc,(i+1)*arc);
-    ctx.fill();
+    wheelCtx.fillStyle = i%2===0?"#ff0000":"#ffffff";
+    wheelCtx.beginPath();
+    wheelCtx.moveTo(radius,radius);
+    wheelCtx.arc(radius,radius,radius,i*arc,(i+1)*arc);
+    wheelCtx.fill();
 
-    // текст с переносом и абсолютной центровкой
+    // текст с переносом и центрированием
     const text = options[i];
     const maxWidth = radius*0.6;
     const words = text.split(" ");
     const lines = [];
-    let line = "";
+    let line="";
     for(let n=0;n<words.length;n++){
-      const testLine = line + words[n] + " ";
-      const metrics = ctx.measureText(testLine);
-      if(metrics.width>maxWidth && n>0){
-        lines.push(line.trim());
-        line = words[n]+" ";
-      }else{
-        line = testLine;
-      }
+      const testLine = line + words[n]+" ";
+      const metrics = wheelCtx.measureText(testLine);
+      if(metrics.width>maxWidth && n>0){ lines.push(line.trim()); line = words[n]+" "; }
+      else line=testLine;
     }
     lines.push(line.trim());
 
-    ctx.save();
-    ctx.translate(radius,radius);
-    ctx.rotate(i*arc + arc/2);
-    ctx.fillStyle = "#000"; // черный текст
-    ctx.font = "bold 16px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.shadowColor = "#aaa";
-    ctx.shadowBlur = 2;
-    const lineHeight = 18;
+    wheelCtx.save();
+    wheelCtx.translate(radius,radius);
+    wheelCtx.rotate(i*arc + arc/2);
+    wheelCtx.fillStyle = "#000";
+    wheelCtx.font = "bold 16px Arial";
+    wheelCtx.textAlign="center";
+    wheelCtx.textBaseline="middle";
+    wheelCtx.shadowColor="#aaa";
+    wheelCtx.shadowBlur=2;
+    const lineHeight=18;
     const totalHeight = lines.length*lineHeight;
     const startY = -totalHeight/2 + lineHeight/2;
     for(let l=0;l<lines.length;l++){
-      ctx.fillText(lines[l], radius*0.6, startY + l*lineHeight);
+      wheelCtx.fillText(lines[l], radius*0.6, startY + l*lineHeight);
     }
-    ctx.restore();
+    wheelCtx.restore();
   }
 
-  // минимальный центр
-  ctx.beginPath();
-  ctx.fillStyle = "#333";
-  ctx.arc(radius,radius,8,0,2*Math.PI);
-  ctx.fill();
-  ctx.strokeStyle = "#000";
-  ctx.stroke();
+  // центр
+  wheelCtx.beginPath();
+  wheelCtx.fillStyle="#333";
+  wheelCtx.arc(radius,radius,8,0,2*Math.PI);
+  wheelCtx.fill();
+  wheelCtx.strokeStyle="#000";
+  wheelCtx.stroke();
+}
+
+// Рисуем стрелку с подпрыгиванием
+function drawArrow(index){
+  arrowCtx.clearRect(0,0,400,400);
+  const num = options.length;
+  if(num===0) return;
+  const arc = 360/num;
+  const targetAngle = (index*arc + arc/2)*Math.PI/180;
+
+  arrowCtx.save();
+  arrowCtx.translate(radius,radius);
+  arrowCtx.rotate(targetAngle);
+  arrowCtx.translate(0, -arrowBounce); // подпрыгивание
+
+  // треугольная стрелка с градиентом
+  const grad = arrowCtx.createLinearGradient(-10,-200,10,0);
+  grad.addColorStop(0,"#ffb347");
+  grad.addColorStop(1,"#ff8008");
+  arrowCtx.fillStyle=grad;
+  arrowCtx.shadowColor="rgba(0,0,0,0.6)";
+  arrowCtx.shadowBlur=6;
+  arrowCtx.beginPath();
+  arrowCtx.moveTo(0,-210);
+  arrowCtx.lineTo(-20,-180);
+  arrowCtx.lineTo(20,-180);
+  arrowCtx.closePath();
+  arrowCtx.fill();
+
+  arrowCtx.strokeStyle="#ff6600";
+  arrowCtx.lineWidth=2;
+  arrowCtx.stroke();
+
+  arrowCtx.restore();
 }
 
 // Анимация вращения
-function animateSpin(final){
-  const start = angle;
-  const target = final;
+function animateSpin(finalIndex){
+  const num = options.length;
+  const slice = 360/num;
+  const spins = 5;
+  const finalAngleDeg = spins*360 + finalIndex*slice + slice/2;
+  const startAngle = angle;
   const duration = 4000;
-  let startTime = null;
+  let startTime=null;
 
   function frame(time){
     if(!startTime) startTime=time;
-    let progress=(time-startTime)/duration;
+    let progress = (time-startTime)/duration;
     if(progress>1) progress=1;
-    let ease=1-Math.pow(1-progress,3);
-    angle=start+(target-start)*ease;
-    canvas.style.transform=`rotate(${angle}deg)`;
-    if(progress<1 && Math.random()<0.15){
-      tick.currentTime=0;
-      tick.play();
-    }
+    const ease = 1-Math.pow(1-progress,3);
+    angle = startAngle + (finalAngleDeg - startAngle)*ease;
+    wheelCanvas.style.transform=`rotate(${angle}deg)`;
+    if(progress<1 && Math.random()<0.15){ tick.currentTime=0; tick.play(); }
     if(progress<1) requestAnimationFrame(frame);
-    else finish();
+    else { startArrowBounce(finalIndex); }
   }
-
   requestAnimationFrame(frame);
+}
+
+// Подпрыгивание стрелки
+function startArrowBounce(index){
+  let start = Date.now();
+  const duration = 1000;
+  const amplitude = 10; // высота подпрыгивания
+  function bounce(){
+    let t = (Date.now()-start)/duration;
+    if(t>1) t=1;
+    arrowBounce = amplitude * Math.sin(t*Math.PI*4)*(1-t); // подпрыгивание с затуханием
+    drawArrow(index);
+    if(t<1) requestAnimationFrame(bounce);
+    else { arrowBounce=0; drawArrow(index); finish(index); }
+  }
+  bounce();
 }
 
 // Вращение
 function spin(){
   if(spinning || options.length===0) return;
   spinning=true;
-  const num = options.length;
-  const slice = 360/num;
-  const spins = Math.floor(Math.random()*num);
-  const finalAngle = 360*5 + spins*slice + slice/2;
-  animateSpin(finalAngle);
+  const randIndex = Math.floor(Math.random()*options.length);
+  selectedIndex = randIndex;
+  animateSpin(randIndex);
 }
 
 // Финал
-function finish(){
-  const normalized = angle%360;
-  const num = options.length;
-  const slice = 360/num;
-  let index = Math.floor((360-normalized)%360/slice);
-  index = index % num;
+function finish(index){
   document.getElementById("result").innerText = options[index];
   spinning=false;
-  drawWheel();
 }
+
+// Обновление секторов
+function updateSectors(){
+  const text = document.getElementById("sectorsInput").value.trim();
+  if(!text) return;
+  options = text.split("\n").map(s=>s.trim()).filter(s=>s.length>0);
+  drawWheel();
+  drawArrow(selectedIndex);
+}
+
+// кнопки
+document.getElementById("updateBtn").onclick = updateSectors;
+document.getElementById("spinBtn").onclick = spin;
 
 // инициализация
 drawWheel();
-updateSectors();
+drawArrow(0);
 </script>
+
 </body>
 </html>
