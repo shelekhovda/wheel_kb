@@ -8,7 +8,7 @@
 body {
   text-align: center;
   font-family: Arial;
-  background: radial-gradient(circle, #222, #000);
+  background: #111;
   color: white;
 }
 
@@ -18,26 +18,28 @@ body {
   margin: auto;
 }
 
-canvas {
-  border-radius: 50%;
-}
-
-/* стрелка */
+/* стрелка сверху */
 #arrow {
   position: absolute;
-  top: -10px;
+  top: -5px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-bottom: 30px solid red;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 35px solid red;
+  z-index: 10;
+}
+
+canvas {
+  border-radius: 50%;
+  transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1);
 }
 
 button {
   margin-top: 20px;
-  padding: 10px 25px;
+  padding: 12px 30px;
   font-size: 18px;
   cursor: pointer;
 }
@@ -51,7 +53,7 @@ button {
 
 <body>
 
-<h1>🎯 Планёрка ДТО</h1>
+<h1>🎯 Планёрка К&Б</h1>
 
 <div id="wrapper">
   <div id="arrow"></div>
@@ -67,7 +69,7 @@ button {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-/* 🔑 ВСТАВЬ СВОЙ FIREBASE CONFIG */
+/* 🔑 ВСТАВЬ СЮДА СВОЙ CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyA0eZ-1AEhH1ovbz-11thQe79Ej_f8nou8",
   authDomain: "wheel-kb.firebaseapp.com",
@@ -84,7 +86,7 @@ const options = [
   "ФН все заменили?",
   "Что с Битриксом, работаете?",
   "Графану тестируете?",
-  "Старые регистраторы поменяли?"
+  "У меня всё, вопросы?"
 ];
 
 const canvas = document.getElementById("wheel");
@@ -95,20 +97,24 @@ const radius = 200;
 let angle = 0;
 let spinning = false;
 
+const slice = 360 / options.length;
+
+/* 🎨 Рисуем колесо */
 function drawWheel() {
-  const slice = 2 * Math.PI / options.length;
+  const arc = 2 * Math.PI / options.length;
 
   for (let i = 0; i < options.length; i++) {
     ctx.beginPath();
-    ctx.fillStyle = i % 2 ? "#ff5722" : "#ffc107";
+    ctx.fillStyle = i % 2 === 0 ? "#fff" : "#000";
     ctx.moveTo(radius, radius);
-    ctx.arc(radius, radius, radius, i * slice, (i + 1) * slice);
+    ctx.arc(radius, radius, radius, i * arc, (i + 1) * arc);
     ctx.fill();
 
     ctx.save();
     ctx.translate(radius, radius);
-    ctx.rotate(i * slice + slice / 2);
-    ctx.fillStyle = "#000";
+    ctx.rotate(i * arc + arc / 2);
+    ctx.fillStyle = i % 2 === 0 ? "#000" : "#fff";
+    ctx.font = "14px Arial";
     ctx.fillText(options[i], 20, 5);
     ctx.restore();
   }
@@ -116,64 +122,67 @@ function drawWheel() {
 
 drawWheel();
 
-/* 🎰 Анимация с easing */
-function animateSpin(targetAngle) {
+/* 🎰 Анимация */
+function animateSpin(target) {
   let start = angle;
   let startTime = null;
 
-  function animate(time) {
+  function frame(time) {
     if (!startTime) startTime = time;
     let progress = (time - startTime) / 4000;
 
     if (progress > 1) progress = 1;
 
-    // ease-out (как казино)
     let ease = 1 - Math.pow(1 - progress, 3);
-    angle = start + (targetAngle - start) * ease;
+    angle = start + (target - start) * ease;
 
     canvas.style.transform = `rotate(${angle}deg)`;
 
-    // звук "трещотки"
-    if (progress < 1 && Math.random() < 0.2) {
+    if (progress < 1 && Math.random() < 0.15) {
       tick.currentTime = 0;
       tick.play();
     }
 
     if (progress < 1) {
-      requestAnimationFrame(animate);
+      requestAnimationFrame(frame);
     } else {
-      finishSpin();
+      finish();
     }
   }
 
-  requestAnimationFrame(animate);
+  requestAnimationFrame(frame);
 }
 
-/* 🔄 Запуск */
+/* 🎯 Крутить */
 window.spin = function () {
   if (spinning) return;
   spinning = true;
 
-  const spinAngle = Math.random() * 360 + 1440;
+  const spins = Math.floor(Math.random() * options.length);
+  const finalAngle =
+    360 * 5 + // обороты
+    (360 - spins * slice - slice / 2); // точная остановка под стрелкой
 
-  // отправляем в Firebase
   set(ref(db, "spin"), {
-    angle: angle + spinAngle
+    angle: finalAngle
   });
 };
 
-/* 👥 Мультиплеер */
-onValue(ref(db, "spin"), (snapshot) => {
-  const data = snapshot.val();
+/* 👥 Синхронизация */
+onValue(ref(db, "spin"), (snap) => {
+  const data = snap.val();
   if (!data) return;
 
   animateSpin(data.angle);
 });
 
-/* 🎯 Результат */
-function finishSpin() {
-  const slice = 360 / options.length;
-  const index = Math.floor((360 - (angle % 360)) / slice) % options.length;
+/* 🧠 Финальный результат */
+function finish() {
+  const normalized = angle % 360;
+
+  const index = Math.floor(
+    ((360 - normalized) % 360) / slice
+  );
 
   document.getElementById("result").innerText = options[index];
   spinning = false;
