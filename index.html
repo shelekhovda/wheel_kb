@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Колесо фортуны</title>
+<title>Колесо фортуны с динамическим текстом</title>
 <style>
 body {
   text-align: center;
@@ -32,9 +32,9 @@ canvas {
   z-index: 10;
 }
 button {
-  margin-top: 20px;
-  padding: 12px 30px;
-  font-size: 18px;
+  margin-top: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
   cursor: pointer;
 }
 #result {
@@ -42,42 +42,45 @@ button {
   font-size: 24px;
   font-weight: bold;
 }
+textarea {
+  width: 400px;
+  height: 100px;
+  font-size: 14px;
+  margin-top: 10px;
+  resize: none;
+}
+label {
+  display: block;
+  margin-top: 15px;
+}
 </style>
 </head>
 <body>
 
-<h1>🎯 Планёрка К&Б</h1>
+<h1>🎯 Колесо фортуны с динамическим текстом</h1>
+
+<label>Введите секторы (каждый сектор с новой строки):</label>
+<textarea id="sectorsInput">
+Что с интернетом?
+Что у нас с АКБ, уезжают?
+ФН все заменили?
+Что с Битриксом, работаете?
+Графану тестируете?
+У меня всё, вопросы?
+</textarea>
+<button onclick="updateSectors()">Обновить колёсо</button>
+
 <div id="wrapper">
   <canvas id="wheel" width="400" height="400"></canvas>
   <div id="arrow"></div>
 </div>
+
 <button onclick="spin()">Крутить</button>
 <h2 id="result"></h2>
 <audio id="tick" src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-wheel-1934.mp3"></audio>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-/* 🔑 Вставь сюда свой Firebase config */
-const firebaseConfig = {
-  apiKey: "AIzaSyA0eZ-1AEhH1ovbz-11thQe79Ej_f8nou8",
-  authDomain: "wheel-kb.firebaseapp.com",
-  databaseURL: "https://wheel-kb-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "wheel-kb"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-const options = [
-  "Что с интернетом?",
-  "Что у нас с АКБ, уезжают?",
-  "ФН все заменили?",
-  "Что с Битриксом, работаете?",
-  "Графану тестируете?",
-  "У меня всё, вопросы?"
-];
+<script>
+let options = [];
 
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
@@ -86,15 +89,21 @@ const tick = document.getElementById("tick");
 const radius = 200;
 let angle = 0;
 let spinning = false;
-const slice = 360 / options.length;
 
-/* 🎨 Рисуем колесо с красно-белыми секторами и текстом по радиусу */
+function updateSectors() {
+  const text = document.getElementById("sectorsInput").value.trim();
+  if (!text) return;
+  options = text.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+  drawWheel();
+}
+
 function drawWheel() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const arc = 2 * Math.PI / options.length;
+  const num = options.length;
+  if (num === 0) return;
+  const arc = 2 * Math.PI / num;
 
-  for (let i = 0; i < options.length; i++) {
-    // цвет сектора
+  for (let i = 0; i < num; i++) {
     ctx.fillStyle = i % 2 === 0 ? "#ff0000" : "#ffffff";
     ctx.beginPath();
     ctx.moveTo(radius, radius);
@@ -123,9 +132,8 @@ function drawWheel() {
   ctx.stroke();
 }
 
-drawWheel();
+updateSectors(); // инициализация секторов по умолчанию
 
-/* 🎰 Анимация вращения */
 function animateSpin(target) {
   let start = angle;
   let startTime = null;
@@ -151,36 +159,28 @@ function animateSpin(target) {
   requestAnimationFrame(frame);
 }
 
-/* 🎯 Крутить */
-window.spin = function () {
-  if (spinning) return;
+function spin() {
+  if (spinning || options.length === 0) return;
   spinning = true;
 
-  const spins = Math.floor(Math.random() * options.length);
-  const finalAngle =
-    360 * 5 + // обороты
-    (spins * slice + slice / 2); // под стрелкой сверху
+  const num = options.length;
+  const slice = 360 / num;
+  const spins = Math.floor(Math.random() * num);
+  const finalAngle = 360 * 5 + spins * slice + slice / 2;
 
-  set(ref(db, "spin"), {
-    angle: finalAngle
-  });
-};
+  angle = angle % 360; // чтобы не копилось
+  animateSpin(finalAngle);
+}
 
-/* 👥 Синхронизация */
-onValue(ref(db, "spin"), (snap) => {
-  const data = snap.val();
-  if (!data) return;
-  animateSpin(data.angle);
-});
-
-/* 🧠 Финальный результат */
 function finish() {
   const normalized = angle % 360;
+  const num = options.length;
+  const slice = 360 / num;
   let index = Math.floor(normalized / slice);
-  index = (options.length - index) % options.length;
+  index = (num - index) % num;
   document.getElementById("result").innerText = options[index];
   spinning = false;
-  drawWheel(); // перерисовываем на случай смещения
+  drawWheel();
 }
 </script>
 
