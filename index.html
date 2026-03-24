@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Колесо фортуны с подпрыгивающей стрелкой</title>
+<title>Колесо фортуны с фиксированной стрелкой</title>
 <style>
 body { text-align:center; font-family:Arial,sans-serif; background:#111; color:white;}
 #wrapper { position:relative; width:420px; margin:auto;}
@@ -16,7 +16,7 @@ label { display:block; margin-top:15px;}
 </head>
 <body>
 
-<h1>🎯 Колесо фортуны с подпрыгивающей стрелкой</h1>
+<h1>🎯 Колесо фортуны с фиксированной стрелкой</h1>
 
 <label>Введите секторы (каждый сектор с новой строки):</label>
 <textarea id="sectorsInput">
@@ -49,7 +49,6 @@ const radius = 200;
 let options = [];
 let angle = 0;
 let spinning = false;
-let selectedIndex = 0;
 let arrowBounce = 0;
 
 // Рисуем колесо
@@ -65,7 +64,6 @@ function drawWheel(){
     wheelCtx.arc(radius,radius,radius,i*arc,(i+1)*arc);
     wheelCtx.fill();
 
-    // текст с переносом и центрированием
     const text = options[i];
     const maxWidth = radius*0.6;
     const words = text.split(" ");
@@ -97,7 +95,6 @@ function drawWheel(){
     wheelCtx.restore();
   }
 
-  // центр
   wheelCtx.beginPath();
   wheelCtx.fillStyle="#333";
   wheelCtx.arc(radius,radius,8,0,2*Math.PI);
@@ -106,20 +103,12 @@ function drawWheel(){
   wheelCtx.stroke();
 }
 
-// Рисуем стрелку с подпрыгиванием
-function drawArrow(index){
+// Рисуем фиксированную стрелку сверху с подпрыгиванием
+function drawArrow(){
   arrowCtx.clearRect(0,0,400,400);
-  const num = options.length;
-  if(num===0) return;
-  const arc = 360/num;
-  const targetAngle = (index*arc + arc/2)*Math.PI/180;
-
   arrowCtx.save();
   arrowCtx.translate(radius,radius);
-  arrowCtx.rotate(targetAngle);
-  arrowCtx.translate(0, -arrowBounce); // подпрыгивание
-
-  // треугольная стрелка с градиентом
+  arrowCtx.translate(0,-arrowBounce); // подпрыгивание
   const grad = arrowCtx.createLinearGradient(-10,-200,10,0);
   grad.addColorStop(0,"#ffb347");
   grad.addColorStop(1,"#ff8008");
@@ -132,15 +121,13 @@ function drawArrow(index){
   arrowCtx.lineTo(20,-180);
   arrowCtx.closePath();
   arrowCtx.fill();
-
   arrowCtx.strokeStyle="#ff6600";
   arrowCtx.lineWidth=2;
   arrowCtx.stroke();
-
   arrowCtx.restore();
 }
 
-// Анимация вращения
+// Анимация вращения колеса
 function animateSpin(finalIndex){
   const num = options.length;
   const slice = 360/num;
@@ -159,23 +146,23 @@ function animateSpin(finalIndex){
     wheelCanvas.style.transform=`rotate(${angle}deg)`;
     if(progress<1 && Math.random()<0.15){ tick.currentTime=0; tick.play(); }
     if(progress<1) requestAnimationFrame(frame);
-    else { startArrowBounce(finalIndex); }
+    else startArrowBounce(finalIndex);
   }
   requestAnimationFrame(frame);
 }
 
-// Подпрыгивание стрелки
+// Подпрыгивание стрелки при остановке
 function startArrowBounce(index){
   let start = Date.now();
   const duration = 1000;
-  const amplitude = 10; // высота подпрыгивания
+  const amplitude = 10;
   function bounce(){
     let t = (Date.now()-start)/duration;
     if(t>1) t=1;
-    arrowBounce = amplitude * Math.sin(t*Math.PI*4)*(1-t); // подпрыгивание с затуханием
-    drawArrow(index);
+    arrowBounce = amplitude * Math.sin(t*Math.PI*4)*(1-t);
+    drawArrow();
     if(t<1) requestAnimationFrame(bounce);
-    else { arrowBounce=0; drawArrow(index); finish(index); }
+    else { arrowBounce=0; drawArrow(); finish(index); }
   }
   bounce();
 }
@@ -185,7 +172,6 @@ function spin(){
   if(spinning || options.length===0) return;
   spinning=true;
   const randIndex = Math.floor(Math.random()*options.length);
-  selectedIndex = randIndex;
   animateSpin(randIndex);
 }
 
@@ -201,7 +187,7 @@ function updateSectors(){
   if(!text) return;
   options = text.split("\n").map(s=>s.trim()).filter(s=>s.length>0);
   drawWheel();
-  drawArrow(selectedIndex);
+  drawArrow();
 }
 
 // кнопки
@@ -210,7 +196,7 @@ document.getElementById("spinBtn").onclick = spin;
 
 // инициализация
 drawWheel();
-drawArrow(0);
+drawArrow();
 </script>
 
 </body>
