@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Колесо фортуны с динамическим текстом</title>
+<title>Колесо фортуны продвинутое</title>
 <style>
 body {
   text-align: center;
@@ -24,12 +24,13 @@ canvas {
   left: 50%;
   width: 0;
   height: 0;
-  margin-left: -20px;
-  margin-top: -210px;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-bottom: 40px solid red;
-  z-index: 10;
+  margin-left: -25px;
+  margin-top: -215px;
+  border-left: 25px solid transparent;
+  border-right: 25px solid transparent;
+  border-bottom: 50px solid #ff0000;
+  z-index: 100; /* поверх всего */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.7);
 }
 button {
   margin-top: 10px;
@@ -44,7 +45,7 @@ button {
 }
 textarea {
   width: 400px;
-  height: 100px;
+  height: 120px;
   font-size: 14px;
   margin-top: 10px;
   resize: none;
@@ -79,24 +80,50 @@ label {
 <h2 id="result"></h2>
 <audio id="tick" src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-wheel-1934.mp3"></audio>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+/* 🔑 Вставьте сюда свой Firebase config */
+const firebaseConfig = {
+  apiKey: "AIzaSyA0eZ-1AEhH1ovbz-11thQe79Ej_f8nou8",
+  authDomain: "wheel-kb.firebaseapp.com",
+  databaseURL: "https://wheel-kb-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "wheel-kb"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 let options = [];
 
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 const tick = document.getElementById("tick");
-
 const radius = 200;
 let angle = 0;
 let spinning = false;
 
+// Функция обновления секторов и синхронизации через Firebase
 function updateSectors() {
   const text = document.getElementById("sectorsInput").value.trim();
   if (!text) return;
   options = text.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+
+  // сохраняем в Firebase для всех
+  set(ref(db, "sectors"), { sectors: options });
   drawWheel();
 }
 
+// Автоматическая подгрузка секторов из Firebase
+onValue(ref(db, "sectors"), (snap) => {
+  const data = snap.val();
+  if (!data || !data.sectors) return;
+  options = data.sectors;
+  document.getElementById("sectorsInput").value = options.join("\n");
+  drawWheel();
+});
+
+// Рисуем колесо
 function drawWheel() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const num = options.length;
@@ -104,36 +131,58 @@ function drawWheel() {
   const arc = 2 * Math.PI / num;
 
   for (let i = 0; i < num; i++) {
+    // Красно-белое чередование
     ctx.fillStyle = i % 2 === 0 ? "#ff0000" : "#ffffff";
     ctx.beginPath();
     ctx.moveTo(radius, radius);
     ctx.arc(radius, radius, radius, i * arc, (i + 1) * arc);
     ctx.fill();
 
-    // текст
+    // Текст с переносом и выравниванием по центру
+    const text = options[i];
+    const maxWidth = radius * 0.8; // ограничение по длине текста
+    const words = text.split(" ");
+    let line = "";
+    const lines = [];
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + " ";
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && n > 0) {
+        lines.push(line.trim());
+        line = words[n] + " ";
+      } else {
+        line = testLine;
+      }
+    }
+    lines.push(line.trim());
+
     ctx.save();
     ctx.translate(radius, radius);
     ctx.rotate(i * arc + arc / 2);
-    ctx.textAlign = "right";
     ctx.fillStyle = i % 2 === 0 ? "#fff" : "#000";
-    ctx.font = "bold 18px Arial";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.shadowColor = "#000";
-    ctx.shadowBlur = 4;
-    ctx.fillText(options[i], radius - 10, 5);
+    ctx.shadowBlur = 3;
+    const lineHeight = 18;
+    const startY = -((lines.length - 1) / 2) * lineHeight;
+    for (let l = 0; l < lines.length; l++) {
+      ctx.fillText(lines[l], radius * 0.6, startY + l * lineHeight);
+    }
     ctx.restore();
   }
 
-  // центральный кружок
+  // Минимальный центральный кружок
   ctx.beginPath();
   ctx.fillStyle = "#333";
-  ctx.arc(radius, radius, 40, 0, 2 * Math.PI);
+  ctx.arc(radius, radius, 10, 0, 2 * Math.PI);
   ctx.fill();
   ctx.strokeStyle = "#000";
   ctx.stroke();
 }
 
-updateSectors(); // инициализация секторов по умолчанию
-
+// Анимация вращения
 function animateSpin(target) {
   let start = angle;
   let startTime = null;
@@ -159,19 +208,19 @@ function animateSpin(target) {
   requestAnimationFrame(frame);
 }
 
+// Вращение
 function spin() {
   if (spinning || options.length === 0) return;
   spinning = true;
-
   const num = options.length;
   const slice = 360 / num;
   const spins = Math.floor(Math.random() * num);
   const finalAngle = 360 * 5 + spins * slice + slice / 2;
-
-  angle = angle % 360; // чтобы не копилось
+  angle = angle % 360; // сброс
   animateSpin(finalAngle);
 }
 
+// Финальный результат
 function finish() {
   const normalized = angle % 360;
   const num = options.length;
@@ -182,6 +231,10 @@ function finish() {
   spinning = false;
   drawWheel();
 }
+
+// Инициализация
+drawWheel();
+updateSectors();
 </script>
 
 </body>
