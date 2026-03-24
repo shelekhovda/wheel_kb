@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Колесо фортуны продвинутое</title>
+<title>Колесо фортуны с центровкой текста</title>
 <style>
 body {
   text-align: center;
@@ -28,9 +28,9 @@ canvas {
   margin-top: -215px;
   border-left: 25px solid transparent;
   border-right: 25px solid transparent;
-  border-bottom: 50px solid #ff0000;
-  z-index: 100; /* поверх всего */
-  box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+  border-bottom: 50px solid orange;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.8);
 }
 button {
   margin-top: 10px;
@@ -58,7 +58,7 @@ label {
 </head>
 <body>
 
-<h1>🎯 Колесо фортуны с динамическим текстом</h1>
+<h1>🎯 Колесо фортуны с центровкой текста</h1>
 
 <label>Введите секторы (каждый сектор с новой строки):</label>
 <textarea id="sectorsInput">
@@ -84,7 +84,7 @@ label {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-/* 🔑 Вставьте сюда свой Firebase config */
+/* Firebase config */
 const firebaseConfig = {
   apiKey: "AIzaSyA0eZ-1AEhH1ovbz-11thQe79Ej_f8nou8",
   authDomain: "wheel-kb.firebaseapp.com",
@@ -103,18 +103,16 @@ const radius = 200;
 let angle = 0;
 let spinning = false;
 
-// Функция обновления секторов и синхронизации через Firebase
+// Обновление секторов
 function updateSectors() {
   const text = document.getElementById("sectorsInput").value.trim();
   if (!text) return;
   options = text.split("\n").map(s => s.trim()).filter(s => s.length > 0);
-
-  // сохраняем в Firebase для всех
   set(ref(db, "sectors"), { sectors: options });
   drawWheel();
 }
 
-// Автоматическая подгрузка секторов из Firebase
+// Синхронизация с Firebase
 onValue(ref(db, "sectors"), (snap) => {
   const data = snap.val();
   if (!data || !data.sectors) return;
@@ -123,52 +121,52 @@ onValue(ref(db, "sectors"), (snap) => {
   drawWheel();
 });
 
-// Рисуем колесо
+// Функция рисования колеса
 function drawWheel() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   const num = options.length;
-  if (num === 0) return;
-  const arc = 2 * Math.PI / num;
+  if(num === 0) return;
+  const arc = 2*Math.PI/num;
 
-  for (let i = 0; i < num; i++) {
-    // Красно-белое чередование
-    ctx.fillStyle = i % 2 === 0 ? "#ff0000" : "#ffffff";
+  for(let i=0;i<num;i++){
+    // красно-белое чередование
+    ctx.fillStyle = i%2===0?"#ff0000":"#ffffff";
     ctx.beginPath();
-    ctx.moveTo(radius, radius);
-    ctx.arc(radius, radius, radius, i * arc, (i + 1) * arc);
+    ctx.moveTo(radius,radius);
+    ctx.arc(radius,radius,radius,i*arc,(i+1)*arc);
     ctx.fill();
 
-    // Текст с переносом и выравниванием по центру
+    // Текст с переносом и абсолютным центром
     const text = options[i];
-    const maxWidth = radius * 0.8; // ограничение по длине текста
+    const maxWidth = radius*0.8;
     const words = text.split(" ");
+    let lines = [];
     let line = "";
-    const lines = [];
-    for (let n = 0; n < words.length; n++) {
+    for(let n=0;n<words.length;n++){
       const testLine = line + words[n] + " ";
       const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && n > 0) {
+      if(metrics.width>maxWidth && n>0){
         lines.push(line.trim());
-        line = words[n] + " ";
-      } else {
+        line = words[n]+" ";
+      }else{
         line = testLine;
       }
     }
     lines.push(line.trim());
 
     ctx.save();
-    ctx.translate(radius, radius);
-    ctx.rotate(i * arc + arc / 2);
-    ctx.fillStyle = i % 2 === 0 ? "#fff" : "#000";
+    ctx.translate(radius,radius);
+    ctx.rotate(i*arc + arc/2);
+    ctx.fillStyle = "#000"; // все надписи черные
     ctx.font = "bold 16px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.shadowColor = "#000";
-    ctx.shadowBlur = 3;
+    ctx.shadowColor = "#aaa";
+    ctx.shadowBlur = 2;
     const lineHeight = 18;
-    const startY = -((lines.length - 1) / 2) * lineHeight;
-    for (let l = 0; l < lines.length; l++) {
-      ctx.fillText(lines[l], radius * 0.6, startY + l * lineHeight);
+    const startY = -((lines.length-1)/2)*lineHeight;
+    for(let l=0;l<lines.length;l++){
+      ctx.fillText(lines[l], radius*0.6, startY + l*lineHeight);
     }
     ctx.restore();
   }
@@ -176,57 +174,52 @@ function drawWheel() {
   // Минимальный центральный кружок
   ctx.beginPath();
   ctx.fillStyle = "#333";
-  ctx.arc(radius, radius, 10, 0, 2 * Math.PI);
+  ctx.arc(radius,radius,8,0,2*Math.PI);
   ctx.fill();
   ctx.strokeStyle = "#000";
   ctx.stroke();
 }
 
 // Анимация вращения
-function animateSpin(target) {
+function animateSpin(target){
   let start = angle;
   let startTime = null;
-
-  function frame(time) {
-    if (!startTime) startTime = time;
-    let progress = (time - startTime) / 4000;
-    if (progress > 1) progress = 1;
-
-    let ease = 1 - Math.pow(1 - progress, 3);
-    angle = start + (target - start) * ease;
+  function frame(time){
+    if(!startTime) startTime = time;
+    let progress = (time-startTime)/4000;
+    if(progress>1) progress=1;
+    let ease = 1 - Math.pow(1-progress,3);
+    angle = start + (target-start)*ease;
     canvas.style.transform = `rotate(${angle}deg)`;
-
-    if (progress < 1 && Math.random() < 0.15) {
+    if(progress<1 && Math.random()<0.15){
       tick.currentTime = 0;
       tick.play();
     }
-
-    if (progress < 1) requestAnimationFrame(frame);
+    if(progress<1) requestAnimationFrame(frame);
     else finish();
   }
-
   requestAnimationFrame(frame);
 }
 
-// Вращение
-function spin() {
-  if (spinning || options.length === 0) return;
+// Крутить
+function spin(){
+  if(spinning || options.length===0) return;
   spinning = true;
   const num = options.length;
-  const slice = 360 / num;
-  const spins = Math.floor(Math.random() * num);
-  const finalAngle = 360 * 5 + spins * slice + slice / 2;
-  angle = angle % 360; // сброс
+  const slice = 360/num;
+  const spins = Math.floor(Math.random()*num);
+  const finalAngle = 360*5 + spins*slice + slice/2;
+  angle = angle%360;
   animateSpin(finalAngle);
 }
 
 // Финальный результат
-function finish() {
-  const normalized = angle % 360;
+function finish(){
+  const normalized = angle%360;
   const num = options.length;
-  const slice = 360 / num;
-  let index = Math.floor(normalized / slice);
-  index = (num - index) % num;
+  const slice = 360/num;
+  let index = Math.floor(normalized/slice);
+  index = (num - index)%num;
   document.getElementById("result").innerText = options[index];
   spinning = false;
   drawWheel();
