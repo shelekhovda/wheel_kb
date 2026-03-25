@@ -308,26 +308,12 @@ function spin(){
 /* ===== ФИНИШ ===== */
 function finish(){
   const slice = 360 / options.length;
-  const index = window.__targetIndex ?? 0;
 
-  // 🎯 вычисляем идеальный угол для выбранного сектора
-  const targetAngle = 360 * 1000 + index * slice + slice / 2;
+  let norm = angle % 360;
+  if (norm < 0) norm += 360;
 
-  // нормализуем текущий угол
-  let current = angle % 360;
-  if (current < 0) current += 360;
-
-  let desired = targetAngle % 360;
-
-  // минимальная докрутка (чтобы не прыгало)
-  let correction = desired - current;
-
-  if (correction > 180) correction -= 360;
-  if (correction < -180) correction += 360;
-
-  angle += correction;
-
-  wheel.style.transform = `rotate(${angle}deg)`;
+  // 👉 СМЕЩЕНИЕ НА 90° (стрелка справа)
+  let index = Math.floor(((360 - norm + 90) % 360) / slice) % options.length;
 
   highlightIndex = index;
   drawWheel();
