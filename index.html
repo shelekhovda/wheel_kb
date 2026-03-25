@@ -236,7 +236,28 @@ function spin(){
   const slice = 360/options.length;
   const index = Math.floor(Math.random()*options.length);
 
-  const final = 360*5 + index*slice + slice/2;
+  // минимум пол-оборота + случайное количество оборотов
+  const minSpins = 0.5; // 180°
+  const extraSpins = Math.random() * 4 + 2; // от 2 до 6 оборотов
+  
+  let finalBase = 360 * (minSpins + extraSpins) + index * slice + slice / 2;
+
+  // шанс 35% на "почти попал"
+  if (Math.random() < 0.35) {
+    const overshoot = slice * (0.3 + Math.random() * 0.4); // перелёт
+    finalBase += overshoot;
+  
+    // запоминаем что нужен откат
+    window.__almostWin = {
+      back: overshoot,
+      active: true
+    };
+  } else {
+    window.__almostWin = { active: false };
+  }
+  
+  const final = finalBase;
+  
   const start = angle;
   let startTime=null;
 
@@ -246,7 +267,17 @@ function spin(){
     let p = (t-startTime)/4000;
     if(p>1) p=1;
 
-    let ease = 1-Math.pow(1-p,3);
+    // физическое ускорение + плавное торможение
+    let ease;
+    if (p < 0.2) {
+      // быстрый разгон
+      ease = 2.5 * p * p;
+    } else {
+      // длинное плавное торможение
+      const t = (p - 0.2) / 0.8;
+      ease = 0.1 + (1 - Math.pow(1 - t, 4)) * 0.9;
+    }
+    
     angle = start + (final-start)*ease;
 
     wheel.style.transform = `rotate(${angle}deg)`;
@@ -259,7 +290,14 @@ function spin(){
     }
 
     if(p<1) requestAnimationFrame(frame);
-    else finish();
+    else {
+    if (window.__almostWin && window.__almostWin.active) {
+      animateBack(window.__almostWin.back);
+    } else {
+      finish();
+    }
+  //} // kdkl4jdfoi4rx98rt9589tr
+    
   }
 
   requestAnimationFrame(frame);
