@@ -126,11 +126,11 @@ const tick = document.getElementById("tick");
 const win = document.getElementById("win");
 
 let options = [];
-let angle = 0;          // текущий угол поворота колеса в градусах
+let angle = 0;          // текущий угол поворота колеса (градусы) — всегда увеличивается, только в одну сторону
 let spinning = false;
 let lastTickIndex = 0;
 let highlightIndex = -1;
-let animationFrameId = null; // для возможности прерывания анимации
+let animationFrameId = null;
 
 const radius = 210;
 
@@ -143,7 +143,6 @@ function drawWheel() {
   const arc = 2 * Math.PI / num;
 
   for (let i = 0; i < num; i++) {
-    // выбор цвета: подсветка выигрышного сектора, иначе чередование
     ctx.fillStyle = (i === highlightIndex) ? "#ffff00" : (i % 2 ? "#fff" : "#f00");
 
     ctx.beginPath();
@@ -166,7 +165,6 @@ function drawWheel() {
   }
 }
 
-// перенос текста, если не помещается
 function wrapText(text) {
   const words = text.split(" ");
   let line = "", lines = [];
@@ -188,17 +186,14 @@ function wrapText(text) {
   });
 }
 
-/* ===== ОБЪЕМНАЯ СТРЕЛКА СПРАВА ===== */
+/* ===== СТРЕЛКА ===== */
 function drawArrow() {
   arrowCtx.clearRect(0, 0, 500, 500);
   arrowCtx.save();
 
-  // центр canvas
   arrowCtx.translate(250, 250);
-  // смещаем стрелку строго вправо (к краю колеса)
-  arrowCtx.translate(210, 0);
-  // поворачиваем, чтобы смотреть в центр
-  arrowCtx.rotate(Math.PI);
+  arrowCtx.translate(210, 0);   // смещение к краю колеса
+  arrowCtx.rotate(Math.PI);     // смотрит в центр
 
   const grad = arrowCtx.createLinearGradient(-40, -20, 40, 20);
   grad.addColorStop(0, "#fff3e0");
@@ -227,25 +222,20 @@ function drawArrow() {
   arrowCtx.restore();
 }
 
-/* ===== ВРАЩЕНИЕ ===== */
+/* ===== ВРАЩЕНИЕ (только в одну сторону, без перескока) ===== */
 function spin() {
   if (spinning || options.length === 0) return;
 
   spinning = true;
-  // отменяем предыдущую анимацию, если была
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
   const slice = 360 / options.length;
-  // случайный целевой сектор (индекс)
   const targetIndex = Math.floor(Math.random() * options.length);
 
-  // минимальное вращение: 0.5 оборота + случайное от 2 до 6 оборотов
   const minSpins = 0.5;
-  const extraSpins = Math.random() * 4 + 2; // от 2 до 6
-  // итоговый угол = (целое число оборотов) + угол центра целевого сектора
+  const extraSpins = Math.random() * 4 + 2; // 2–6 оборотов
   let finalBase = 360 * (minSpins + extraSpins) + targetIndex * slice + slice / 2;
 
-  // шанс 35% на "почти попал" (перелёт с откатом)
   let overshoot = 0;
   if (Math.random() < 0.35) {
     overshoot = slice * (0.3 + Math.random() * 0.4);
@@ -258,34 +248,31 @@ function spin() {
 
   function animateFrame(timestamp) {
     if (!startTime) startTime = timestamp;
-
     let progress = (timestamp - startTime) / 4000;
     if (progress > 1) progress = 1;
 
-    // ease: быстрый разгон в начале, плавное торможение в конце
+    // ease: быстрый разгон, плавное торможение
     let ease;
     if (progress < 0.2) {
-      ease = 2.5 * progress * progress;       // разгон
+      ease = 2.5 * progress * progress;
     } else {
       const t = (progress - 0.2) / 0.8;
-      ease = 0.1 + (1 - Math.pow(1 - t, 4)) * 0.9; // торможение
+      ease = 0.1 + (1 - Math.pow(1 - t, 4)) * 0.9;
     }
 
     angle = startAngle + (finalAngle - startAngle) * ease;
     wheel.style.transform = `rotate(${angle}deg)`;
 
-    // звук при переключении сектора
     const cur = Math.floor(((angle % 360) + 360) % 360 / slice);
     if (cur !== lastTickIndex) {
       tick.currentTime = 0;
-      tick.play().catch(e => console.log("Audio play error", e));
+      tick.play().catch(e => console.log("Audio error", e));
       lastTickIndex = cur;
     }
 
     if (progress < 1) {
       animationFrameId = requestAnimationFrame(animateFrame);
     } else {
-      // анимация завершена
       animationFrameId = null;
       if (overshoot > 0) {
         animateBack(overshoot);
@@ -310,7 +297,7 @@ function animateBack(back) {
     let progress = (timestamp - startTime) / duration;
     if (progress > 1) progress = 1;
 
-    const ease = 1 - Math.pow(1 - progress, 2); // легкая пружина
+    const ease = 1 - Math.pow(1 - progress, 2);
     angle = start + (target - start) * ease;
     wheel.style.transform = `rotate(${angle}deg)`;
 
@@ -324,27 +311,21 @@ function animateBack(back) {
   requestAnimationFrame(frame);
 }
 
-/* ===== ФИНИШ: определение выигрышного сектора ===== */
+/* ===== ФИНИШ: определяем выигрышный сектор (угол не меняется, перескока нет) ===== */
 function finish() {
   const slice = 360 / options.length;
-  // нормализуем угол поворота колеса (0..360)
   let norm = angle % 360;
   if (norm < 0) norm += 360;
 
-  // Стрелка находится справа и смотрит в центр.
-  // При угле поворота колеса angle точка, которая была на 0° (вправо),
-  // смещается на angle° по часовой стрелке.
-  // Нам нужно определить, какой сектор сейчас находится напротив стрелки (на угле 0°).
-  // Для этого берём угол, обратный повороту: (360 - norm) % 360.
-  // Делим на размер сектора и получаем индекс.
-  let index = Math.floor(((360 - norm) % 360) / slice) % options.length;
+  // Стрелка справа, смотрит в центр.
+  // Сектор, оказавшийся напротив стрелки, вычисляем как:
+  const index = Math.floor(((360 - norm) % 360) / slice) % options.length;
 
   highlightIndex = index;
   drawWheel();
 
-  const resultDiv = document.getElementById("result");
-  resultDiv.innerText = options[index];
-  win.play().catch(e => console.log("Audio play error", e));
+  document.getElementById("result").innerText = options[index];
+  win.play().catch(e => console.log("Audio error", e));
 
   spinning = false;
 }
@@ -356,18 +337,16 @@ function update() {
     return;
   }
 
-  // сбрасываем состояние
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
 
   options = document.getElementById("sectorsInput").value
     .split("\n")
     .map(x => x.trim())
     .filter(x => x);
 
-  // сброс угла и подсветки
+  // Сброс состояния: угол не обнуляем, чтобы колесо не дёргалось,
+  // но для нового набора секторов лучше обнулить поворот (чтобы не было путаницы)
   angle = 0;
   highlightIndex = -1;
   lastTickIndex = 0;
