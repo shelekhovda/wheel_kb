@@ -319,6 +319,36 @@ function finish(){
   spinning=false;
 }
 
+function animateBack(back){
+  const start = angle;
+  const target = angle - back;
+
+  const duration = 600;
+  let startTime = null;
+
+  function frame(t){
+    if(!startTime) startTime = t;
+
+    let p = (t - startTime) / duration;
+    if(p > 1) p = 1;
+
+    // быстрый возврат с легкой пружиной
+    let ease = 1 - Math.pow(1 - p, 2);
+
+    angle = start + (target - start) * ease;
+    wheel.style.transform = `rotate(${angle}deg)`;
+
+    if(p < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      finish();
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+  
 /* ===== ОБНОВЛЕНИЕ ===== */
 function update(){
   options = document.getElementById("sectorsInput").value
