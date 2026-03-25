@@ -126,38 +126,39 @@ const tick = document.getElementById("tick");
 const win = document.getElementById("win");
 
 let options = [];
-let angle = 0;
+let angle = 0;          // текущий угол поворота колеса в градусах
 let spinning = false;
 let lastTickIndex = 0;
 let highlightIndex = -1;
+let animationFrameId = null; // для возможности прерывания анимации
 
 const radius = 210;
 
 /* ===== КОЛЕСО ===== */
-function drawWheel(){
-  ctx.clearRect(0,0,420,420);
-
+function drawWheel() {
+  ctx.clearRect(0, 0, 420, 420);
   const num = options.length;
-  if(num === 0) return;
+  if (num === 0) return;
 
-  const arc = 2*Math.PI/num;
+  const arc = 2 * Math.PI / num;
 
-  for(let i=0;i<num;i++){
-    ctx.fillStyle = i===highlightIndex ? "#ffff00" : (i%2?"#fff":"#f00");
+  for (let i = 0; i < num; i++) {
+    // выбор цвета: подсветка выигрышного сектора, иначе чередование
+    ctx.fillStyle = (i === highlightIndex) ? "#ffff00" : (i % 2 ? "#fff" : "#f00");
 
     ctx.beginPath();
-    ctx.moveTo(radius,radius);
-    ctx.arc(radius,radius,radius,i*arc,(i+1)*arc);
+    ctx.moveTo(radius, radius);
+    ctx.arc(radius, radius, radius, i * arc, (i + 1) * arc);
     ctx.fill();
 
     ctx.save();
-    ctx.translate(radius,radius);
-    ctx.rotate(i*arc + arc/2);
+    ctx.translate(radius, radius);
+    ctx.rotate(i * arc + arc / 2);
 
-    ctx.fillStyle="#000";
-    ctx.font="bold 16px Arial";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 16px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
     wrapText(options[i]);
 
@@ -165,58 +166,57 @@ function drawWheel(){
   }
 }
 
-function wrapText(text){
+// перенос текста, если не помещается
+function wrapText(text) {
   const words = text.split(" ");
-  let line="", lines=[];
-  for(let w of words){
+  let line = "", lines = [];
+  for (let w of words) {
     let test = line + w + " ";
-    if(ctx.measureText(test).width > 120){
+    if (ctx.measureText(test).width > 120) {
       lines.push(line);
-      line = w+" ";
-    } else line = test;
+      line = w + " ";
+    } else {
+      line = test;
+    }
   }
   lines.push(line);
 
-  let startY = -((lines.length-1)/2)*18;
-  lines.forEach((l,i)=>{
-    ctx.fillText(l, radius*0.6, startY + i*18);
+  const lineHeight = 18;
+  let startY = -((lines.length - 1) / 2) * lineHeight;
+  lines.forEach((l, i) => {
+    ctx.fillText(l, radius * 0.6, startY + i * lineHeight);
   });
 }
 
 /* ===== ОБЪЕМНАЯ СТРЕЛКА СПРАВА ===== */
-function drawArrow(){
-  arrowCtx.clearRect(0,0,500,500);
-
+function drawArrow() {
+  arrowCtx.clearRect(0, 0, 500, 500);
   arrowCtx.save();
 
   // центр canvas
-  arrowCtx.translate(250,250);
-
-  // 👉 смещаем стрелку строго вправо (к краю колеса)
+  arrowCtx.translate(250, 250);
+  // смещаем стрелку строго вправо (к краю колеса)
   arrowCtx.translate(210, 0);
+  // поворачиваем, чтобы смотреть в центр
+  arrowCtx.rotate(Math.PI);
 
-  // 👉 теперь поворачиваем "в центр" (влево)
-  arrowCtx.rotate(Math.PI); 
-
-  // градиент (объем)
-  const grad = arrowCtx.createLinearGradient(-40,-20,40,20);
-  grad.addColorStop(0,"#fff3e0");
-  grad.addColorStop(0.5,"#ff9800");
-  grad.addColorStop(1,"#e65100");
+  const grad = arrowCtx.createLinearGradient(-40, -20, 40, 20);
+  grad.addColorStop(0, "#fff3e0");
+  grad.addColorStop(0.5, "#ff9800");
+  grad.addColorStop(1, "#e65100");
 
   arrowCtx.fillStyle = grad;
   arrowCtx.shadowColor = "rgba(0,0,0,0.7)";
   arrowCtx.shadowBlur = 15;
 
-  // форма стрелки (смотрит в центр)
   arrowCtx.beginPath();
-  arrowCtx.moveTo(40,0);
-  arrowCtx.lineTo(-20,-25);
-  arrowCtx.lineTo(-10,-10);
-  arrowCtx.lineTo(-80,-10);
-  arrowCtx.lineTo(-80,10);
-  arrowCtx.lineTo(-10,10);
-  arrowCtx.lineTo(-20,25);
+  arrowCtx.moveTo(40, 0);
+  arrowCtx.lineTo(-20, -25);
+  arrowCtx.lineTo(-10, -10);
+  arrowCtx.lineTo(-80, -10);
+  arrowCtx.lineTo(-80, 10);
+  arrowCtx.lineTo(-10, 10);
+  arrowCtx.lineTo(-20, 25);
   arrowCtx.closePath();
   arrowCtx.fill();
 
@@ -228,122 +228,93 @@ function drawArrow(){
 }
 
 /* ===== ВРАЩЕНИЕ ===== */
-function spin(){
-  if(spinning || options.length===0) return;
+function spin() {
+  if (spinning || options.length === 0) return;
 
-  spinning=true;
+  spinning = true;
+  // отменяем предыдущую анимацию, если была
+  if (animationFrameId) cancelAnimationFrame(animationFrameId);
 
-  const slice = 360/options.length;
-  const index = Math.floor(Math.random()*options.length);
-  //window.__targetIndex = index;
+  const slice = 360 / options.length;
+  // случайный целевой сектор (индекс)
+  const targetIndex = Math.floor(Math.random() * options.length);
 
-  // минимум пол-оборота + случайное количество оборотов
-  const minSpins = 0.5; // 180°
-  const extraSpins = Math.random() * 4 + 2; // от 2 до 6 оборотов
-  
-  let finalBase = 360 * (minSpins + extraSpins) + index * slice + slice / 2;
-  //let finalBase = 360 * (minSpins + extraSpins) + window.__targetIndex * slice + slice / 2;
+  // минимальное вращение: 0.5 оборота + случайное от 2 до 6 оборотов
+  const minSpins = 0.5;
+  const extraSpins = Math.random() * 4 + 2; // от 2 до 6
+  // итоговый угол = (целое число оборотов) + угол центра целевого сектора
+  let finalBase = 360 * (minSpins + extraSpins) + targetIndex * slice + slice / 2;
 
-  // шанс 35% на "почти попал"
+  // шанс 35% на "почти попал" (перелёт с откатом)
+  let overshoot = 0;
   if (Math.random() < 0.35) {
-    const overshoot = slice * (0.3 + Math.random() * 0.4); // перелёт
+    overshoot = slice * (0.3 + Math.random() * 0.4);
     finalBase += overshoot;
-  
-    // запоминаем что нужен откат
-    window.__almostWin = {
-      back: overshoot,
-      active: true
-    };
-  } else {
-    window.__almostWin = { active: false };
   }
-  
-  const final = finalBase;
-  
-  const start = angle;
-  let startTime=null;
 
-  function frame(t){
-    if(!startTime) startTime=t;
+  const finalAngle = finalBase;
+  const startAngle = angle;
+  let startTime = null;
 
-    let p = (t-startTime)/4000;
-    if(p>1) p=1;
+  function animateFrame(timestamp) {
+    if (!startTime) startTime = timestamp;
 
-    // физическое ускорение + плавное торможение
+    let progress = (timestamp - startTime) / 4000;
+    if (progress > 1) progress = 1;
+
+    // ease: быстрый разгон в начале, плавное торможение в конце
     let ease;
-    if (p < 0.2) {
-      // быстрый разгон
-      ease = 2.5 * p * p;
+    if (progress < 0.2) {
+      ease = 2.5 * progress * progress;       // разгон
     } else {
-      // длинное плавное торможение
-      const t = (p - 0.2) / 0.8;
-      ease = 0.1 + (1 - Math.pow(1 - t, 4)) * 0.9;
+      const t = (progress - 0.2) / 0.8;
+      ease = 0.1 + (1 - Math.pow(1 - t, 4)) * 0.9; // торможение
     }
-    
-    angle = start + (final-start)*ease;
 
+    angle = startAngle + (finalAngle - startAngle) * ease;
     wheel.style.transform = `rotate(${angle}deg)`;
 
-    let cur = Math.floor((angle%360)/slice);
-    if(cur!==lastTickIndex){
-      tick.currentTime=0;
-      tick.play();
-      lastTickIndex=cur;
+    // звук при переключении сектора
+    const cur = Math.floor(((angle % 360) + 360) % 360 / slice);
+    if (cur !== lastTickIndex) {
+      tick.currentTime = 0;
+      tick.play().catch(e => console.log("Audio play error", e));
+      lastTickIndex = cur;
     }
 
-    if(p<1) requestAnimationFrame(frame);
-    else {
-      if (window.__almostWin && window.__almostWin.active) {
-        animateBack(window.__almostWin.back);
+    if (progress < 1) {
+      animationFrameId = requestAnimationFrame(animateFrame);
+    } else {
+      // анимация завершена
+      animationFrameId = null;
+      if (overshoot > 0) {
+        animateBack(overshoot);
       } else {
         finish();
       }
-    } // kdkl4jdfoi4rx98rt9589tr
-    
+    }
   }
 
-  requestAnimationFrame(frame);
+  animationFrameId = requestAnimationFrame(animateFrame);
 }
 
-/* ===== ФИНИШ ===== */
-function finish(){
-  const slice = 360 / options.length;
-
-  let norm = angle % 360;
-  if (norm < 0) norm += 360;
-
-  // 👉 СМЕЩЕНИЕ НА 90° (стрелка справа)
-  let index = Math.floor(((360 - norm + 90) % 360) / slice) % options.length;
-
-  highlightIndex = index;
-  drawWheel();
-
-  document.getElementById("result").innerText = options[index];
-  win.play();
-
-  spinning = false;
-}
-
-function animateBack(back){
+/* ===== ОТКАТ (эффект "почти попал") ===== */
+function animateBack(back) {
   const start = angle;
   const target = angle - back;
-
   const duration = 600;
   let startTime = null;
 
-  function frame(t){
-    if(!startTime) startTime = t;
+  function frame(timestamp) {
+    if (!startTime) startTime = timestamp;
+    let progress = (timestamp - startTime) / duration;
+    if (progress > 1) progress = 1;
 
-    let p = (t - startTime) / duration;
-    if(p > 1) p = 1;
-
-    // быстрый возврат с легкой пружиной
-    let ease = 1 - Math.pow(1 - p, 2);
-
+    const ease = 1 - Math.pow(1 - progress, 2); // легкая пружина
     angle = start + (target - start) * ease;
     wheel.style.transform = `rotate(${angle}deg)`;
 
-    if(p < 1) {
+    if (progress < 1) {
       requestAnimationFrame(frame);
     } else {
       finish();
@@ -353,18 +324,60 @@ function animateBack(back){
   requestAnimationFrame(frame);
 }
 
-  
-/* ===== ОБНОВЛЕНИЕ ===== */
-function update(){
+/* ===== ФИНИШ: определение выигрышного сектора ===== */
+function finish() {
+  const slice = 360 / options.length;
+  // нормализуем угол поворота колеса (0..360)
+  let norm = angle % 360;
+  if (norm < 0) norm += 360;
+
+  // Стрелка находится справа и смотрит в центр.
+  // При угле поворота колеса angle точка, которая была на 0° (вправо),
+  // смещается на angle° по часовой стрелке.
+  // Нам нужно определить, какой сектор сейчас находится напротив стрелки (на угле 0°).
+  // Для этого берём угол, обратный повороту: (360 - norm) % 360.
+  // Делим на размер сектора и получаем индекс.
+  let index = Math.floor(((360 - norm) % 360) / slice) % options.length;
+
+  highlightIndex = index;
+  drawWheel();
+
+  const resultDiv = document.getElementById("result");
+  resultDiv.innerText = options[index];
+  win.play().catch(e => console.log("Audio play error", e));
+
+  spinning = false;
+}
+
+/* ===== ОБНОВЛЕНИЕ СЕКТОРОВ ===== */
+function update() {
+  if (spinning) {
+    alert("Дождитесь окончания вращения!");
+    return;
+  }
+
+  // сбрасываем состояние
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
   options = document.getElementById("sectorsInput").value
     .split("\n")
-    .map(x=>x.trim())
-    .filter(x=>x);
+    .map(x => x.trim())
+    .filter(x => x);
+
+  // сброс угла и подсветки
+  angle = 0;
+  highlightIndex = -1;
+  lastTickIndex = 0;
+  wheel.style.transform = "rotate(0deg)";
+  document.getElementById("result").innerText = "";
 
   drawWheel();
 }
 
-/* INIT */
+/* ===== ИНИЦИАЛИЗАЦИЯ ===== */
 drawArrow();
 update();
 
