@@ -235,12 +235,14 @@ function spin(){
 
   const slice = 360/options.length;
   const index = Math.floor(Math.random()*options.length);
+  window.__targetIndex = index;
 
   // минимум пол-оборота + случайное количество оборотов
   const minSpins = 0.5; // 180°
   const extraSpins = Math.random() * 4 + 2; // от 2 до 6 оборотов
   
-  let finalBase = 360 * (minSpins + extraSpins) + index * slice + slice / 2;
+  //let finalBase = 360 * (minSpins + extraSpins) + index * slice + slice / 2;
+  let finalBase = 360 * (minSpins + extraSpins) + window.__targetIndex * slice + slice / 2;
 
   // шанс 35% на "почти попал"
   if (Math.random() < 0.35) {
@@ -305,10 +307,7 @@ function spin(){
 
 /* ===== ФИНИШ ===== */
 function finish(){
-  const slice = 360/options.length;
-
-  let norm = angle%360;
-  let index = Math.floor((360-norm)/slice)%options.length;
+  const index = window.__targetIndex ?? 0;
 
   highlightIndex = index;
   drawWheel();
