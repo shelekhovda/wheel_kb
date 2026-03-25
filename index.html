@@ -307,7 +307,27 @@ function spin(){
 
 /* ===== ФИНИШ ===== */
 function finish(){
+  const slice = 360 / options.length;
   const index = window.__targetIndex ?? 0;
+
+  // 🎯 вычисляем идеальный угол для выбранного сектора
+  const targetAngle = 360 * 1000 + index * slice + slice / 2;
+
+  // нормализуем текущий угол
+  let current = angle % 360;
+  if (current < 0) current += 360;
+
+  let desired = targetAngle % 360;
+
+  // минимальная докрутка (чтобы не прыгало)
+  let correction = desired - current;
+
+  if (correction > 180) correction -= 360;
+  if (correction < -180) correction += 360;
+
+  angle += correction;
+
+  wheel.style.transform = `rotate(${angle}deg)`;
 
   highlightIndex = index;
   drawWheel();
@@ -315,7 +335,7 @@ function finish(){
   document.getElementById("result").innerText = options[index];
   win.play();
 
-  spinning=false;
+  spinning = false;
 }
 
 function animateBack(back){
