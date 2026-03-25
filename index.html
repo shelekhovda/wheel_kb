@@ -2,367 +2,501 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>🎰 Колесо фортуны PRO</title>
+<title>🎰 Колесо фортуны PRO | Объемное колесо</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: radial-gradient(circle at center, #222, #000);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+  * {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  margin-top: 20px;
-}
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: radial-gradient(circle at 30% 20%, #1a1a2e, #0a0a1a);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
 
-#wrapper {
-  position: relative;
-  width: 420px;
-  height: 420px;
-}
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 40px;
+    backdrop-filter: blur(4px);
+  }
 
-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  border-radius: 50%;
-}
+  h1 {
+    text-shadow: 0 0 10px #ff9800, 0 0 20px #ff9800;
+    letter-spacing: 2px;
+  }
 
-/* стрелка справа */
-#arrowCanvas {
-  width: 500px;
-  height: 500px;
-  left: -40px;
-  top: -40px;
-  z-index: 10;
-  pointer-events: none;
-}
+  #wrapper {
+    position: relative;
+    width: 440px;
+    height: 440px;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+  }
 
-.controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+  }
 
-textarea {
-  width: 400px;
-  height: 100px;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
-}
+  #wheel {
+    box-shadow: 0 0 0 8px #ff9800, 0 0 0 12px #e65100, 0 0 20px rgba(0,0,0,0.5);
+    transition: transform 0.05s linear;
+  }
 
-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  background: #ff9800;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  box-shadow: 0 0 10px #ff9800;
-}
+  #arrowCanvas {
+    width: 540px;
+    height: 540px;
+    left: -50px;
+    top: -50px;
+    z-index: 10;
+    pointer-events: none;
+  }
 
-#result {
-  font-size: 26px;
-  font-weight: bold;
-  text-align: center;
-  text-shadow: 0 0 10px yellow;
-  min-height: 30px;
-}
+  .controls {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  textarea {
+    width: 380px;
+    height: 110px;
+    border-radius: 20px;
+    padding: 12px;
+    font-size: 14px;
+    font-family: monospace;
+    background: #2d2d3a;
+    color: #ffd966;
+    border: 2px solid #ff9800;
+    resize: vertical;
+    box-shadow: inset 0 0 5px #000;
+  }
+
+  button {
+    padding: 12px 28px;
+    font-size: 18px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff9800, #e65100);
+    border: none;
+    border-radius: 40px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #7f3f00;
+    transition: 0.07s linear;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  button:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #7f3f00;
+  }
+
+  #result {
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    text-shadow: 0 0 12px gold;
+    background: rgba(0,0,0,0.6);
+    padding: 12px 30px;
+    border-radius: 50px;
+    backdrop-filter: blur(8px);
+    border: 1px solid #ff9800;
+    min-width: 250px;
+  }
 </style>
 </head>
-
 <body>
-
 <div class="container">
-
-<h1>🎰 Колесо фортуны PRO</h1>
-
-<div class="controls">
-<textarea id="sectorsInput">
-Что с интернетом?
-АКБ уезжают?
-ФН заменили?
-Битрикс тестируете?
-Графану тестируете?
-Таблички все заполнили?
-</textarea>
-
-<button id="updateBtn">Обновить</button>
+  <h1>🎡 КОЛЕСО ФОРТУНЫ PRO</h1>
+  <div class="controls">
+    <textarea id="sectorsInput">
+✨ Что с интернетом?
+⚡ АКБ уезжают?
+🔧 ФН заменили?
+💻 Битрикс тестируете?
+🎨 Графану тестируете?
+📋 Таблички все заполнили?</textarea>
+    <button id="updateBtn">🔄 Обновить</button>
+  </div>
+  <div id="wrapper">
+    <canvas id="wheel" width="440" height="440"></canvas>
+    <canvas id="arrowCanvas" width="540" height="540"></canvas>
+  </div>
+  <button id="spinBtn">🎲 КРУТИТЬ!</button>
+  <div id="result">✨ ГОТОВ К ИГРЕ ✨</div>
 </div>
 
-<div id="wrapper">
-  <canvas id="wheel" width="420" height="420"></canvas>
-  <canvas id="arrowCanvas" width="500" height="500"></canvas>
-</div>
-
-<button id="spinBtn">Крутить</button>
-
-<div id="result"></div>
-
-</div>
-
-<!-- звуки -->
 <audio id="tick" src="https://assets.mixkit.co/sfx/preview/mixkit-click-1112.mp3"></audio>
 <audio id="win" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3"></audio>
 
 <script>
-const wheel = document.getElementById("wheel");
-const ctx = wheel.getContext("2d");
+  (function() {
+    // ---------- DOM элементы ----------
+    const wheelCanvas = document.getElementById('wheel');
+    const ctx = wheelCanvas.getContext('2d');
+    const arrowCanvas = document.getElementById('arrowCanvas');
+    const arrowCtx = arrowCanvas.getContext('2d');
+    const tickSound = document.getElementById('tick');
+    const winSound = document.getElementById('win');
 
-const arrowCanvas = document.getElementById("arrowCanvas");
-const arrowCtx = arrowCanvas.getContext("2d");
+    // ---------- состояние ----------
+    let sectors = [];            // массив текстов
+    let currentAngle = 0;       // текущий угол поворота (градусы) — только рост
+    let isSpinning = false;
+    let lastSectorIndex = -1;
+    let winIndex = -1;
+    let animFrameId = null;
+    
+    // константы
+    const SIZE = 440;
+    const RADIUS = SIZE / 2;      // 220
+    const TEXT_RADIUS = 150;       // радиус для текста (чуть ближе к центру, чтобы объемнее)
+    const LINE_HEIGHT = 20;
+    const MAX_TEXT_WIDTH = 140;
 
-const tick = document.getElementById("tick");
-const win = document.getElementById("win");
+    // ----- вспомогательная функция для нормализации угла 0..360
+    const normalizeAngle = (deg) => ((deg % 360) + 360) % 360;
 
-let options = [];
-let angle = 0;          // текущий угол поворота колеса (градусы) — всегда увеличивается, только в одну сторону
-let spinning = false;
-let lastTickIndex = 0;
-let highlightIndex = -1;
-let animationFrameId = null;
-
-const radius = 210;
-
-/* ===== КОЛЕСО ===== */
-function drawWheel() {
-  ctx.clearRect(0, 0, 420, 420);
-  const num = options.length;
-  if (num === 0) return;
-
-  const arc = 2 * Math.PI / num;
-
-  for (let i = 0; i < num; i++) {
-    ctx.fillStyle = (i === highlightIndex) ? "#ffff00" : (i % 2 ? "#fff" : "#f00");
-
-    ctx.beginPath();
-    ctx.moveTo(radius, radius);
-    ctx.arc(radius, radius, radius, i * arc, (i + 1) * arc);
-    ctx.fill();
-
-    ctx.save();
-    ctx.translate(radius, radius);
-    ctx.rotate(i * arc + arc / 2);
-
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 16px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    wrapText(options[i]);
-
-    ctx.restore();
-  }
-}
-
-function wrapText(text) {
-  const words = text.split(" ");
-  let line = "", lines = [];
-  for (let w of words) {
-    let test = line + w + " ";
-    if (ctx.measureText(test).width > 120) {
-      lines.push(line);
-      line = w + " ";
-    } else {
-      line = test;
-    }
-  }
-  lines.push(line);
-
-  const lineHeight = 18;
-  let startY = -((lines.length - 1) / 2) * lineHeight;
-  lines.forEach((l, i) => {
-    ctx.fillText(l, radius * 0.6, startY + i * lineHeight);
-  });
-}
-
-/* ===== СТРЕЛКА ===== */
-function drawArrow() {
-  arrowCtx.clearRect(0, 0, 500, 500);
-  arrowCtx.save();
-
-  arrowCtx.translate(250, 250);
-  arrowCtx.translate(210, 0);   // смещение к краю колеса
-  arrowCtx.rotate(Math.PI);     // смотрит в центр
-
-  const grad = arrowCtx.createLinearGradient(-40, -20, 40, 20);
-  grad.addColorStop(0, "#fff3e0");
-  grad.addColorStop(0.5, "#ff9800");
-  grad.addColorStop(1, "#e65100");
-
-  arrowCtx.fillStyle = grad;
-  arrowCtx.shadowColor = "rgba(0,0,0,0.7)";
-  arrowCtx.shadowBlur = 15;
-
-  arrowCtx.beginPath();
-  arrowCtx.moveTo(40, 0);
-  arrowCtx.lineTo(-20, -25);
-  arrowCtx.lineTo(-10, -10);
-  arrowCtx.lineTo(-80, -10);
-  arrowCtx.lineTo(-80, 10);
-  arrowCtx.lineTo(-10, 10);
-  arrowCtx.lineTo(-20, 25);
-  arrowCtx.closePath();
-  arrowCtx.fill();
-
-  arrowCtx.strokeStyle = "#bf360c";
-  arrowCtx.lineWidth = 2;
-  arrowCtx.stroke();
-
-  arrowCtx.restore();
-}
-
-/* ===== ВРАЩЕНИЕ (только в одну сторону, без перескока) ===== */
-function spin() {
-  if (spinning || options.length === 0) return;
-
-  spinning = true;
-  if (animationFrameId) cancelAnimationFrame(animationFrameId);
-
-  const slice = 360 / options.length;
-  const targetIndex = Math.floor(Math.random() * options.length);
-
-  const minSpins = 0.5;
-  const extraSpins = Math.random() * 4 + 2; // 2–6 оборотов
-  let finalBase = 360 * (minSpins + extraSpins) + targetIndex * slice + slice / 2;
-
-  let overshoot = 0;
-  if (Math.random() < 0.35) {
-    overshoot = slice * (0.3 + Math.random() * 0.4);
-    finalBase += overshoot;
-  }
-
-  const finalAngle = finalBase;
-  const startAngle = angle;
-  let startTime = null;
-
-  function animateFrame(timestamp) {
-    if (!startTime) startTime = timestamp;
-    let progress = (timestamp - startTime) / 4000;
-    if (progress > 1) progress = 1;
-
-    // ease: быстрый разгон, плавное торможение
-    let ease;
-    if (progress < 0.2) {
-      ease = 2.5 * progress * progress;
-    } else {
-      const t = (progress - 0.2) / 0.8;
-      ease = 0.1 + (1 - Math.pow(1 - t, 4)) * 0.9;
-    }
-
-    angle = startAngle + (finalAngle - startAngle) * ease;
-    wheel.style.transform = `rotate(${angle}deg)`;
-
-    const cur = Math.floor(((angle % 360) + 360) % 360 / slice);
-    if (cur !== lastTickIndex) {
-      tick.currentTime = 0;
-      tick.play().catch(e => console.log("Audio error", e));
-      lastTickIndex = cur;
-    }
-
-    if (progress < 1) {
-      animationFrameId = requestAnimationFrame(animateFrame);
-    } else {
-      animationFrameId = null;
-      if (overshoot > 0) {
-        animateBack(overshoot);
+    // ----- объёмная отрисовка сектора с градиентом и тенью
+    function drawSector(ctx, centerX, centerY, radius, startAngleRad, endAngleRad, colorBase, isWin) {
+      // для объёма используем радиальный градиент
+      const grad = ctx.createRadialGradient(
+        centerX - radius*0.15, centerY - radius*0.15, radius*0.2,
+        centerX, centerY, radius
+      );
+      if (isWin) {
+        grad.addColorStop(0, '#ffffaa');
+        grad.addColorStop(0.6, '#ffcc44');
+        grad.addColorStop(1, '#ffaa22');
       } else {
-        finish();
+        // базовый цвет сектора делаем ярче/объемнее
+        let light = colorBase === '#fff' ? '#f5f5f5' : '#ff4d4d';
+        let dark = colorBase === '#fff' ? '#ddd' : '#aa2e2e';
+        grad.addColorStop(0, light);
+        grad.addColorStop(0.7, dark);
+        grad.addColorStop(1, '#8b0000');
       }
+      
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngleRad, endAngleRad);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      
+      // легкая обводка для четкости
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
-  }
 
-  animationFrameId = requestAnimationFrame(animateFrame);
-}
-
-/* ===== ОТКАТ (эффект "почти попал") ===== */
-function animateBack(back) {
-  const start = angle;
-  const target = angle - back;
-  const duration = 600;
-  let startTime = null;
-
-  function frame(timestamp) {
-    if (!startTime) startTime = timestamp;
-    let progress = (timestamp - startTime) / duration;
-    if (progress > 1) progress = 1;
-
-    const ease = 1 - Math.pow(1 - progress, 2);
-    angle = start + (target - start) * ease;
-    wheel.style.transform = `rotate(${angle}deg)`;
-
-    if (progress < 1) {
-      requestAnimationFrame(frame);
-    } else {
-      finish();
+    // функция обрезки текста с многострочностью
+    function wrapTextLines(text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = '';
+      
+      for (let w of words) {
+        let testLine = currentLine ? currentLine + ' ' + w : w;
+        let metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = w;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+      return lines;
     }
-  }
 
-  requestAnimationFrame(frame);
-}
+    // объёмный текст с тенью и градиентом
+    function drawVolumetricText(ctx, textLines, centerX, centerY, angleRot, radiusPos) {
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(angleRot);
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      
+      // градиент для текста (золотистый объём)
+      const gradText = ctx.createLinearGradient(-40, -12, 40, 12);
+      gradText.addColorStop(0, '#ffd966');
+      gradText.addColorStop(0.5, '#ffb347');
+      gradText.addColorStop(1, '#e67e22');
+      
+      ctx.font = 'bold 18px "Segoe UI", Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const totalHeight = (textLines.length - 1) * LINE_HEIGHT;
+      let yOffset = -totalHeight / 2;
+      
+      for (let i = 0; i < textLines.length; i++) {
+        ctx.fillStyle = gradText;
+        ctx.fillText(textLines[i], radiusPos, yOffset + i * LINE_HEIGHT);
+        // добавляем легкий контур
+        ctx.strokeStyle = '#3b2a1f';
+        ctx.lineWidth = 1;
+        ctx.strokeText(textLines[i], radiusPos, yOffset + i * LINE_HEIGHT);
+      }
+      ctx.restore();
+    }
 
-/* ===== ФИНИШ: определяем выигрышный сектор (угол не меняется, перескока нет) ===== */
-function finish() {
-  const slice = 360 / options.length;
-  let norm = angle % 360;
-  if (norm < 0) norm += 360;
+    // отрисовка всего колеса с объемом
+    function drawWheel() {
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      const count = sectors.length;
+      if (count === 0) {
+        ctx.font = '20px Arial';
+        ctx.fillStyle = '#ccc';
+        ctx.shadowBlur = 0;
+        ctx.fillText('Добавьте сектора', RADIUS - 80, RADIUS);
+        return;
+      }
+      
+      const angleStepRad = (Math.PI * 2) / count;
+      // угол поворота в радианах для отрисовки (визуальный сдвиг)
+      const rotRad = (currentAngle * Math.PI) / 180;
+      
+      for (let i = 0; i < count; i++) {
+        // вычисляем начальный и конечный угол сектора с учетом поворота колеса
+        let startRad = i * angleStepRad - rotRad;
+        let endRad = (i + 1) * angleStepRad - rotRad;
+        
+        const colorBase = (i % 2 === 0) ? '#fff' : '#f44';
+        const isWinSector = (i === winIndex);
+        
+        drawSector(ctx, RADIUS, RADIUS, RADIUS, startRad, endRad, colorBase, isWinSector);
+        
+        // рисуем текст в центре сектора (средний угол)
+        let midRad = (i + 0.5) * angleStepRad - rotRad;
+        // текст размещаем на радиусе TEXT_RADIUS
+        const textLines = wrapTextLines(sectors[i], MAX_TEXT_WIDTH);
+        drawVolumetricText(ctx, textLines, RADIUS, RADIUS, midRad, TEXT_RADIUS);
+      }
+      
+      // центральный круг с объемом
+      ctx.beginPath();
+      ctx.arc(RADIUS, RADIUS, 38, 0, Math.PI*2);
+      const centerGrd = ctx.createRadialGradient(RADIUS-8, RADIUS-8, 5, RADIUS, RADIUS, 42);
+      centerGrd.addColorStop(0, '#ffcc88');
+      centerGrd.addColorStop(1, '#b95f00');
+      ctx.fillStyle = centerGrd;
+      ctx.fill();
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = '#ffdd99';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
 
-  // Стрелка справа, смотрит в центр.
-  // Сектор, оказавшийся напротив стрелки, вычисляем как:
-  const index = Math.floor(((360 - norm) % 360) / slice) % options.length;
+    // ----- Стрелка объемная (справа, смотрит в центр) -----
+    function drawArrow() {
+      arrowCtx.clearRect(0, 0, 540, 540);
+      arrowCtx.save();
+      arrowCtx.translate(270, 270);
+      arrowCtx.translate(220, 0);      // позиция напротив колеса
+      arrowCtx.rotate(Math.PI);         // направление на центр
+      
+      // тень для объема
+      arrowCtx.shadowColor = 'rgba(0,0,0,0.5)';
+      arrowCtx.shadowBlur = 8;
+      arrowCtx.shadowOffsetX = 3;
+      arrowCtx.shadowOffsetY = 3;
+      
+      // градиент для стрелки
+      const gradArr = arrowCtx.createLinearGradient(-45, -30, 40, 30);
+      gradArr.addColorStop(0, '#ffdd99');
+      gradArr.addColorStop(0.5, '#ffaa33');
+      gradArr.addColorStop(1, '#d45c00');
+      
+      arrowCtx.fillStyle = gradArr;
+      arrowCtx.beginPath();
+      arrowCtx.moveTo(45, 0);
+      arrowCtx.lineTo(-25, -28);
+      arrowCtx.lineTo(-12, -12);
+      arrowCtx.lineTo(-85, -12);
+      arrowCtx.lineTo(-85, 12);
+      arrowCtx.lineTo(-12, 12);
+      arrowCtx.lineTo(-25, 28);
+      arrowCtx.closePath();
+      arrowCtx.fill();
+      
+      arrowCtx.strokeStyle = '#b53b00';
+      arrowCtx.lineWidth = 2;
+      arrowCtx.stroke();
+      
+      // добавляем блик
+      arrowCtx.beginPath();
+      arrowCtx.moveTo(35, 0);
+      arrowCtx.lineTo(10, -10);
+      arrowCtx.lineTo(10, 10);
+      arrowCtx.fillStyle = '#fff6cf';
+      arrowCtx.fill();
+      
+      arrowCtx.restore();
+    }
 
-  highlightIndex = index;
-  drawWheel();
+    // ----- определение выигрышного сектора (стрелка справа, угол смотрит) -----
+    function getWinningSectorIndex() {
+      if (sectors.length === 0) return -1;
+      const sliceDeg = 360 / sectors.length;
+      let normAngle = normalizeAngle(currentAngle);
+      // угол направления стрелки – всегда 0° (вправо, но колесо повернуто на normAngle)
+      // сектор, который сейчас находится напротив стрелки:
+      let rawIndex = Math.floor(((360 - normAngle) % 360) / sliceDeg);
+      return rawIndex % sectors.length;
+    }
 
-  document.getElementById("result").innerText = options[index];
-  win.play().catch(e => console.log("Audio error", e));
+    // завершение вращения
+    function finishSpin() {
+      if (!isSpinning) return;
+      
+      const winIdx = getWinningSectorIndex();
+      winIndex = winIdx;
+      drawWheel();
+      
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `🏆 ${sectors[winIdx]} 🏆`;
+      winSound.play().catch(e => console.log);
+      
+      isSpinning = false;
+      animFrameId = null;
+    }
 
-  spinning = false;
-}
+    // анимация вращения (только в одну сторону, без отскоков)
+    function startSpin() {
+      if (isSpinning || sectors.length === 0) return;
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      
+      isSpinning = true;
+      winIndex = -1;
+      drawWheel(); // сброс подсветки
+      
+      const sliceDeg = 360 / sectors.length;
+      // выбираем случайный целевой сектор
+      const targetSector = Math.floor(Math.random() * sectors.length);
+      
+      // Генерируем финальный угол: минимум 2 оборота + до 6 доп оборотов + смещение на середину сектора
+      const minFullTurns = 2;
+      const extraTurns = 2 + Math.random() * 5;   // 2..7
+      let targetAngleRaw = (minFullTurns + extraTurns) * 360 + targetSector * sliceDeg + sliceDeg/2;
+      
+      // корректируем, чтобы угол только увеличивался (вращение строго по часовой)
+      let startAngle = currentAngle;
+      let delta = targetAngleRaw - startAngle;
+      if (delta <= 0) {
+        // добавляем необходимое количество полных оборотов
+        let fullAdd = Math.ceil((-delta) / 360);
+        targetAngleRaw += fullAdd * 360;
+        delta = targetAngleRaw - startAngle;
+      }
+      
+      const finalTargetAngle = targetAngleRaw;
+      const duration = 3800; // мс
+      let startTime = null;
+      
+      // easing: разгон и плавное торможение
+      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      const easeInQuad = (t) => t * t;
+      
+      function animate(now) {
+        if (!startTime) startTime = now;
+        let elapsed = now - startTime;
+        let progress = Math.min(1, elapsed / duration);
+        
+        let easeProgress;
+        if (progress < 0.2) {
+          // разгон
+          const subProgress = progress / 0.2;
+          easeProgress = easeInQuad(subProgress) * 0.2;
+        } else {
+          const mainProgress = (progress - 0.2) / 0.8;
+          easeProgress = 0.2 + easeOutCubic(mainProgress) * 0.8;
+        }
+        
+        currentAngle = startAngle + (finalTargetAngle - startAngle) * easeProgress;
+        drawWheel();
+        
+        // звук перехода сектора
+        const curSector = Math.floor(((currentAngle % 360) + 360) % 360 / sliceDeg);
+        if (curSector !== lastSectorIndex && sectors.length > 0) {
+          lastSectorIndex = curSector;
+          tickSound.currentTime = 0;
+          tickSound.play().catch(e => console.log);
+        }
+        
+        if (progress < 1) {
+          animFrameId = requestAnimationFrame(animate);
+        } else {
+          // фиксация угла (без скачка)
+          currentAngle = finalTargetAngle;
+          drawWheel();
+          finishSpin();
+          animFrameId = null;
+        }
+      }
+      
+      animFrameId = requestAnimationFrame(animate);
+    }
 
-/* ===== ОБНОВЛЕНИЕ СЕКТОРОВ ===== */
-function update() {
-  if (spinning) {
-    alert("Дождитесь окончания вращения!");
-    return;
-  }
+    // обновление секторов из textarea
+    function updateSectors() {
+      if (isSpinning) {
+        alert('Подождите, колесо крутится!');
+        return;
+      }
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
+      }
+      
+      const rawText = document.getElementById('sectorsInput').value;
+      let newSectors = rawText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      
+      if (newSectors.length === 0) {
+        newSectors = ['Нет данных'];
+      }
+      
+      sectors = newSectors;
+      currentAngle = 0;
+      winIndex = -1;
+      lastSectorIndex = -1;
+      drawWheel();
+      document.getElementById('result').innerHTML = '✨ СЕКТОРА ОБНОВЛЕНЫ ✨';
+    }
 
-  if (animationFrameId) cancelAnimationFrame(animationFrameId);
-  animationFrameId = null;
-
-  options = document.getElementById("sectorsInput").value
-    .split("\n")
-    .map(x => x.trim())
-    .filter(x => x);
-
-  // Сброс состояния: угол не обнуляем, чтобы колесо не дёргалось,
-  // но для нового набора секторов лучше обнулить поворот (чтобы не было путаницы)
-  angle = 0;
-  highlightIndex = -1;
-  lastTickIndex = 0;
-  wheel.style.transform = "rotate(0deg)";
-  document.getElementById("result").innerText = "";
-
-  drawWheel();
-}
-
-/* ===== ИНИЦИАЛИЗАЦИЯ ===== */
-drawArrow();
-update();
-
-document.getElementById("spinBtn").onclick = spin;
-document.getElementById("updateBtn").onclick = update;
+    // начальная отрисовка
+    function init() {
+      drawArrow();
+      updateSectors();
+      
+      document.getElementById('spinBtn').addEventListener('click', startSpin);
+      document.getElementById('updateBtn').addEventListener('click', updateSectors);
+    }
+    
+    init();
+  })();
 </script>
-
 </body>
 </html>
